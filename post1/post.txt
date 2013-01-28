@@ -1,0 +1,84 @@
+<p style="margin-bottom: 0in;">Finite state machines are a method of computation in which programs have a number of finite states and where certain events cause the  state to transition to other states. The Erlang Docs explain that a FSM can be described as a set of relations of the form:</p>
+<p style="margin-bottom: 0in;">State(S) x Event(E) -&gt; Actions (A), State(S')</p>
+<p style="margin-bottom: 0in;">These relations are interpreted to mean: If we are in state (S) and the event (E) occurs, we should perform the actions (A) and make a transition to the state (S).</p>
+<p style="margin-bottom: 0in;">There are many real world examples of FSM's, the most popular I can think of is a traffic light. A traffic light has 3 states, red, green, and yellow, and certain actions trigger it to change colors in a specific order. The state will start at green but after a certain time period or when a car pulls up to a sensor it will trigger an event and begin transitioning into the yellow state. After a short preprogrammed time in the yellow state it begins to transition to the red state. Once the red state reaches it's time limit it transitions back to the green state, and so on indefinitely.</p>
+<p style="margin-bottom: 0in;">A nicer more complex example that Erlang was literally made for are old school phone systems. They have a set number of states and can only perform a select number of actions to switch between those states.</p>
+<p style="margin-bottom: 0in;">Lets start by naming the elements of our design. There are 4 states Idle, Ringing, Dialing, and Connected, a phone can only ever be doing those 4 things. The user can perform 3 actions with his phone; take_off_hook, put_on_hook, and dial. There are only 3 events that can occur in our system; receive_call/2 which means that a user dialed a number and the recipients phone transitions to the ringing state, caller_answers/0 which means the recipient called take_off_hook allowing you to connect, and caller_hangs_up with means the recipient called put_on_hook on his end sending you to idle.</p>
+<p style="margin-bottom: 0in;">I drew up a diagram. Circles are states, blue lines are actions, red lines are events.</p>
+<p style="margin-bottom: 0in;"><img class="posterous_plugin_object posterous_plugin_object_image" src="http://getfile0.posterous.com/getfile/files.posterous.com/temp-2013-01-28/wlottsqFcyuDzoGcjelGDDDpbEnEkfrygInqxFdgdIsJDqmwhByqBntdgIjJ/fsm_pic.xcf.thumb100.jpg?content_part=pid___0" alt="" width="100" height="100" /></p>
+<p style="margin-bottom: 0in;">Seeing as how I have never built a Finite State Machine my goal is to implement a telephone system. For simplicity I will make each phone-number a PID and have the process calling the event or action be the first argument. For example to make a call we type this in the shell:</p>
+<!-- HTML generated using hilite.me -->
+<div style="background: white; overflow: auto; width: auto; color: black; border: solid gray; border-width: .1em .1em .1em .8em; padding: .2em .6em;">
+<pre style="margin: 0; line-height: 125%;"><span style="color: #8f5902;">1&gt;</span> <span style="color: #000000;">dial</span><span style="color: #000000; font-weight: bold;">(</span><span style="color: #000000;">My_Pid</span><span style="color: #000000; font-weight: bold;">,</span> <span style="color: #000000;">Recipient</span><span style="color: #000000; font-weight: bold;">)</span>
+</pre>
+</div>
+<p style="margin-bottom: 0in;">or to I hang up type in:</p>
+<!-- HTML generated using hilite.me -->
+<div style="background: white; overflow: auto; width: auto; color: black; border: solid gray; border-width: .1em .1em .1em .8em; padding: .2em .6em;">
+<pre style="margin: 0; line-height: 125%;"><span style="color: #8f5902;">2&gt;</span> <span style="color: #000000;">hang_up</span><span style="color: #000000; font-weight: bold;">(</span><span style="color: #000000;">My_PID</span><span style="color: #000000; font-weight: bold;">)</span>
+</pre>
+</div>
+<p style="margin-bottom: 0in;">&nbsp;</p>
+<p style="margin-bottom: 0in;">I'm also going to add an event manager to handle all logging information and allow the telecom system to perform proper billing.</p>
+<p style="margin-bottom: 0in;">Check out the full code on github: github.com/link</p>
+<p style="margin-bottom: 0in;">Let's take it for a test, first we need to add a few users to the network.</p>
+<!-- HTML generated using hilite.me -->
+<div style="background: white; overflow: auto; width: auto; color: black; border: solid gray; border-width: .1em .1em .1em .8em; padding: .2em .6em;">
+<pre style="margin: 0; line-height: 125%;"><span style="color: #8f5902;">1&gt;</span> <span style="color: #000000;">c</span><span style="color: #000000; font-weight: bold;">(</span><span style="color: #000000;">fsm</span><span style="color: #000000; font-weight: bold;">).</span>
+<span style="color: #000000; font-style: italic;">{ok,fsm}</span>
+<span style="color: #8f5902;">2&gt;</span> <span style="color: #000000;">c</span><span style="color: #000000; font-weight: bold;">(</span><span style="color: #000000;">fsm_log</span><span style="color: #000000; font-weight: bold;">).</span>
+<span style="color: #000000; font-style: italic;">{ok,fsm_log}</span>
+<span style="color: #8f5902;">3&gt;</span> <span style="color: #000000;">Joey</span> <span style="color: #ce5c00; font-weight: bold;">=</span> <span style="color: #000000;">fsm</span><span style="color: #000000; font-weight: bold;">:</span><span style="color: #000000;">add_user</span><span style="color: #000000; font-weight: bold;">().</span>
+<span style="color: #000000; font-style: italic;">&lt;0.44.0&gt;</span>
+<span style="color: #000000; font-style: italic;">now in idle</span>
+<span style="color: #8f5902;">4&gt;</span> <span style="color: #000000;">Bob</span> <span style="color: #ce5c00; font-weight: bold;">=</span> <span style="color: #000000;">fsm</span><span style="color: #000000; font-weight: bold;">:</span><span style="color: #000000;">add_user</span><span style="color: #000000; font-weight: bold;">().</span> 
+<span style="color: #000000; font-style: italic;">&lt;0.47.0&gt;</span>
+<span style="color: #000000; font-style: italic;">now in idle</span>
+<span style="color: #8f5902;">5&gt;</span> <span style="color: #000000;">Alice</span> <span style="color: #ce5c00; font-weight: bold;">=</span> <span style="color: #000000;">fsm</span><span style="color: #000000; font-weight: bold;">:</span><span style="color: #000000;">add_user</span><span style="color: #000000; font-weight: bold;">().</span>
+<span style="color: #000000; font-style: italic;">&lt;0.50.0&gt;</span>
+<span style="color: #000000; font-style: italic;">now in idle</span>
+</pre>
+</div>
+<p style="margin-bottom: 0in;">Joey calls Bob but gives up after a few rings.</p>
+<!-- HTML generated using hilite.me -->
+<div style="background: white; overflow: auto; width: auto; color: black; border: solid gray; border-width: .1em .1em .1em .8em; padding: .2em .6em;">
+<pre style="margin: 0; line-height: 125%;"><span style="color: #8f5902;">6&gt;</span> <span style="color: #000000;">fsm</span><span style="color: #000000; font-weight: bold;">:</span><span style="color: #000000;">dial</span><span style="color: #000000; font-weight: bold;">(</span><span style="color: #000000;">Joey</span><span style="color: #000000; font-weight: bold;">,</span> <span style="color: #000000;">Bob</span><span style="color: #000000; font-weight: bold;">)</span> <span style="color: #8f5902; font-style: italic;">% Joey calls Bob.</span>
+
+<span style="color: #000000; font-style: italic;">ringgg</span>
+<span style="color: #000000; font-style: italic;">diallll</span>
+<span style="color: #000000; font-style: italic;">ringgg</span>
+<span style="color: #000000; font-style: italic;">diallll</span>
+
+<span style="color: #8f5902;">7&gt;</span> <span style="color: #000000;">fsm</span><span style="color: #000000; font-weight: bold;">:</span><span style="color: #000000;">put_on_hook</span><span style="color: #000000; font-weight: bold;">(</span><span style="color: #000000;">Joe</span><span style="color: #000000; font-weight: bold;">)</span> <span style="color: #8f5902; font-style: italic;">% Joe gives up and puts his phone on hook and </span>
+<span style="color: #000000; font-style: italic;">                                      </span><span style="color: #8f5902; font-style: italic;">%both processes change state to idle</span></pre>
+</div>
+<p style="margin-bottom: 0in;">Joey decides to call Alice who answers.</p>
+<!-- HTML generated using hilite.me -->
+<div style="background: white; overflow: auto; width: auto; color: black; border: solid gray; border-width: .1em .1em .1em .8em; padding: .2em .6em;">
+<pre style="margin: 0; line-height: 125%;"><span style="color: #8f5902;">8&gt;</span> <span style="color: #000000;">fsm</span><span style="color: #000000; font-weight: bold;">:</span><span style="color: #000000;">dial</span><span style="color: #000000; font-weight: bold;">(</span><span style="color: #000000;">Joey</span><span style="color: #000000; font-weight: bold;">,</span> <span style="color: #000000;">Alice</span><span style="color: #000000; font-weight: bold;">).</span> <span style="color: #8f5902; font-style: italic;">% Joey calls Alice</span>
+<span style="color: #000000; font-style: italic;">diallll</span>
+<span style="color: #000000; font-style: italic;">ringgg</span>
+<span style="color: #000000; font-style: italic;">diallll</span>
+<span style="color: #000000; font-style: italic;">ringgg</span>
+<span style="color: #000000; font-style: italic;">ringgg                     </span>
+<span style="color: #000000; font-style: italic;">diallll                    </span>
+<span style="color: #8f5902;">9&gt;</span> <span style="color: #000000;">fsm</span><span style="color: #000000; font-weight: bold;">:</span><span style="color: #000000;">take_off_hook</span><span style="color: #000000; font-weight: bold;">(</span><span style="color: #000000;">Alice</span><span style="color: #000000; font-weight: bold;">).</span> <span style="color: #8f5902; font-style: italic;">%Alice answers</span>
+<span style="color: #000000; font-style: italic;">&lt;0.44.0&gt; connected</span>
+<span style="color: #000000; font-style: italic;">&lt;0.50.0&gt; connected</span>
+<span style="color: #000000; font-style: italic;">{ok}</span>
+<span style="color: #8f5902;">10&gt;</span> <span style="color: #000000;">fsm</span><span style="color: #000000; font-weight: bold;">:</span><span style="color: #000000;">put_on_hook</span><span style="color: #000000; font-weight: bold;">(</span><span style="color: #000000;">Joey</span><span style="color: #000000; font-weight: bold;">).</span>
+<span style="color: #000000; font-style: italic;">now in idle</span>
+<span style="color: #000000; font-style: italic;">now in idle</span>
+<span style="color: #000000; font-style: italic;">{ok}</span></pre>
+</div>
+<p style="margin-bottom: 0in;">I also want to note that as soon as users enter&nbsp;and leave the connected state the time is logged.</p>
+<p style="margin-bottom: 0in;">Logs are kept individually for each number in the format:</p>
+<p style="margin-bottom: 0in;">Phone Number &nbsp; Time Initiated &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;Time Ended</p>
+<p style="margin-bottom: 0in;">&nbsp;</p>
+<p style="margin-bottom: 0in;">&lt;0.47.0&gt;: &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;1359.399540.139164 - 1359.399566.999164</p>
+<p style="margin-bottom: 0in;">&lt;0.113.0&gt;: &nbsp; &nbsp; &nbsp; &nbsp; 1357.765096.843575 - 1357.765100.948697</p>
+<p style="margin-bottom: 0in;">&lt;0.110.0&gt;: &nbsp; &nbsp; &nbsp; &nbsp; 1357.765188.465904 - 1357.765202.213616</p>
+<p style="margin-bottom: 0in;">&lt;0.46.0&gt;: &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;1359.399540.139144 - 1359.399566.999193</p>
+<p>&nbsp;</p>
+<p style="margin-bottom: 0in;">Enabling easy trackage of calling time.</p>
+<p style="margin-bottom: 0in;">Hopefully you learned what Finite State Machines are and can start thinking about how to use them when designing programs. While not perfect for every problem they are a great tool to have when a solution requires a limited number of states and only certain actions to affect them.</p>
