@@ -1,0 +1,28 @@
+-module(my_db_app).
+
+-behaviour(application).
+
+%% Application callbacks
+-export([start/2, stop/1]).
+
+%% ===================================================================
+%% Application callbacks
+%% ===================================================================
+
+start(normal, _StartArgs) ->
+    my_db_sup:start_link().
+
+stop(_State) ->
+    ok.
+
+write(Key, Element) ->
+	my_db_gen:write(Key, Element).
+
+delete(Key) ->
+	my_db_gen:delete(Key).
+
+read(Key) ->
+	my_db_gen:read(Key).
+
+match(Element) ->
+	my_db_gen:match(Element).
